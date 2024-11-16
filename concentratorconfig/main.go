@@ -6,8 +6,9 @@ If an error occurs, it will print it and won't update any node.
 Pass the simulate argument to only show the wireguard interface changes that would be applied.
 When it is started this way, it exits after printing the changes.
 
-The program expects a fixed Wireguard interface name (see [WG_DEVICENAME]) and
-an etcd configuration file at a fixed location (see [github.com/ffbs/etcd-tools/ffbs.CreateEtcdConnection]).
+The program expects by default a Wireguard interface named "wg-nodes"
+and an etcd configuration file at "/etc/etcd-client.json".
+These can be changed using command line flags.
 */
 package main
 
@@ -24,11 +25,10 @@ import (
 
 	"github.com/ffbs/etcd-tools/ffbs"
 
+	"github.com/spf13/cobra"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
-
-const WG_DEVICENAME = "wg-nodes"
 
 func sortIPNet(s []net.IPNet) {
 	sort.Slice(s, func(i, j int) bool {
@@ -41,13 +41,8 @@ func sortIPNet(s []net.IPNet) {
 	})
 }
 
-func calculateWGPeerUpdates(etcd *ffbs.EtcdHandler, wg *wgctrl.Client) ([]wgtypes.PeerConfig, error) {
+func calculateWGPeerUpdates(etcd *ffbs.EtcdHandler, dev *wgtypes.Device) ([]wgtypes.PeerConfig, error) {
 	nodes, defNode, err := etcd.GetAllNodeInfo(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	dev, err := wg.Device(WG_DEVICENAME)
 	if err != nil {
 		return nil, err
 	}
@@ -139,18 +134,15 @@ func calculateWGPeerUpdates(etcd *ffbs.EtcdHandler, wg *wgctrl.Client) ([]wgtype
 	return updates, nil
 }
 
-func main() {
-	simulate := false
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "simulate":
-			simulate = true
-		default:
-			log.Fatalln("unknown arguments. Currently only 'simulate' is supported")
-		}
-	}
+type CLIConfig struct {
+	EtcdConfig     string
+	UpdateInterval time.Duration
+	WGDeviceName   string
+	Simulate       bool
+}
 
-	etcd, err := ffbs.CreateEtcdConnection()
+func run(config *CLIConfig) {
+	etcd, err := ffbs.CreateEtcdConnection(config.EtcdConfig)
 	if err != nil {
 		log.Fatalln("Couldn't setup etcd connection:", err)
 	}
@@ -163,12 +155,18 @@ func main() {
 	for {
 		// misusing a loop to break at any moment and still run the sleep call
 		for {
-			updates, err := calculateWGPeerUpdates(etcd, wg)
+			dev, err := wg.Device(config.WGDeviceName)
+			if err != nil {
+				log.Println("Error getting Wireguard device", config.WGDeviceName, "and got error:", err)
+				break
+			}
+
+			updates, err := calculateWGPeerUpdates(etcd, dev)
 			if err != nil {
 				log.Println("Error trying to determine the node updates:", err)
 				break
 			}
-			if simulate {
+			if config.Simulate {
 				fmt.Printf("Peer updates: %v\n", updates)
 				return
 			}
@@ -176,13 +174,46 @@ func main() {
 				break
 			}
 
-			if err := wg.ConfigureDevice(WG_DEVICENAME, wgtypes.Config{Peers: updates}); err != nil {
+			if err := wg.ConfigureDevice(config.WGDeviceName, wgtypes.Config{Peers: updates}); err != nil {
 				log.Println("Error trying to apply the node updates:", err)
 				break
 			}
 			log.Println("Updated", len(updates), "peers")
 			break
 		}
-		time.Sleep(60 * time.Second)
+		time.Sleep(config.UpdateInterval)
+	}
+}
+
+func main() {
+	var config CLIConfig
+
+	rootCmd := &cobra.Command{
+		Use:   "concentratorconfig",
+		Short: "Configure the Wireguard interface based on the etcd KV configuration",
+		Run: func(cmd *cobra.Command, args []string) {
+			run(&config)
+		},
+	}
+
+	rootCmd.PersistentFlags().StringVarP(&config.EtcdConfig, "etcdconfig", "e", "/etc/etcd-client.json", "Path to the etcd client configuration file")
+	rootCmd.MarkFlagFilename("etcdconfig", "json")
+	rootCmd.PersistentFlags().DurationVarP(&config.UpdateInterval, "interval", "i", 60*time.Second, "Interval to update the wireguard configuration from the etcd store")
+	rootCmd.PersistentFlags().StringVarP(&config.WGDeviceName, "devicename", "d", "wg-nodes", "Wireguard device name to update the configuration")
+
+	simulateCmd := &cobra.Command{
+		Use:   "simulate",
+		Short: "Simulate updating of the wireguard devices, but don't apply them",
+		Run: func(cmd *cobra.Command, args []string) {
+			config.Simulate = true
+			run(&config)
+		},
+	}
+
+	rootCmd.AddCommand(simulateCmd)
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

@@ -25,8 +25,8 @@ type EtcdConfigFile struct {
 // This function will only allow the configured CACert and
 // ignores system root certificate authorities when connecting
 // to the etcd server.
-func CreateEtcdConnection() (*EtcdHandler, error) {
-	f, err := os.Open("/etc/etcd-client.json")
+func CreateEtcdConnection(configFile string) (*EtcdHandler, error) {
+	f, err := os.Open(configFile)
 	if err != nil {
 		return nil, err
 	}
