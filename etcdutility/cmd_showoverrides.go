@@ -12,17 +12,24 @@ import (
 )
 
 func init() {
+	var etcdConfig string
+
 	cmd := &cobra.Command{
 		Use:   "showoverrides",
 		Short: "Shows all Pubkeys overriding a default value",
-		Run:   showoverrides,
+		Run: func(cmd *cobra.Command, args []string) {
+			showoverrides(etcdConfig)
+		},
 	}
+
+	cmd.PersistentFlags().StringVarP(&etcdConfig, "etcdconfig", "e", "/etc/etcd-client.json", "Path to the etcd client configuration file")
+	cmd.MarkFlagFilename("etcdconfig", "json")
 
 	rootCmd.AddCommand(cmd)
 }
 
-func showoverrides(cmd *cobra.Command, args []string) {
-	etcd, err := ffbs.CreateEtcdConnection()
+func showoverrides(etcdConfig string) {
+	etcd, err := ffbs.CreateEtcdConnection(etcdConfig)
 	if err != nil {
 		log.Fatalln("Couldn't setup etcd connection:", err)
 	}
