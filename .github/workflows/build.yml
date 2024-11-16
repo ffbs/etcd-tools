@@ -20,8 +20,9 @@ jobs:
           git diff --exit-code
           go vet ./...
 
-      - name: Build project
+      - name: Build and test project
         run: |
+          go test ./...
           mkdir bin
           GOBIN="$PWD/bin" CGO_ENABLED=0 go install ./...
 
