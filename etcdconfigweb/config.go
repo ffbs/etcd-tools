@@ -34,6 +34,31 @@ var MISSING_V6MTU = errors.New("Missing v6mtu query parameter")
 var MISSING_PUBKEY = errors.New("Missing pubkey query parameter")
 var MISSING_NONCE = errors.New("Missing nonce query parameter")
 
+func generateNodeAddressesAndRanges(info *ffbs.NodeInfo) {
+	const V4_BASE uint32 = 10 << 24
+	const V4_RANGE_SIZE uint8 = 10
+	const V6_BASE_HIGH uint64 = 0x20010bf70381 << 16
+
+	num := *info.ID
+
+	var v4Addr [net.IPv4len]byte
+	binary.BigEndian.PutUint32(v4Addr[:], V4_BASE|(uint32(num)<<V4_RANGE_SIZE))
+	v4range := fmt.Sprintf("%s/%d", net.IP(v4Addr[:]), 8*net.IPv4len-V4_RANGE_SIZE)
+	v4Addr[net.IPv4len-1] = 1
+	v4addr := net.IP(v4Addr[:]).String()
+
+	var v6Addr [net.IPv6len]byte
+	binary.BigEndian.PutUint64(v6Addr[:8], V6_BASE_HIGH|uint64(num))
+	v6range := fmt.Sprintf("%s/64", net.IP(v6Addr[:]))
+	v6Addr[net.IPv6len-1] = 1
+	v6addr := net.IP(v6Addr[:]).String()
+
+	info.Address4 = &v4addr
+	info.Range4 = &v4range
+	info.Address6 = &v6addr
+	info.Range6 = &v6range
+}
+
 func (ch ConfigHandler) handleRequest(ctx context.Context, query url.Values, headers http.Header) (*ConfigResponse, error) {
 	var v6mtu uint64
 	var err error
@@ -80,30 +105,7 @@ func (ch ConfigHandler) handleRequest(ctx context.Context, query url.Values, hea
 		}
 
 		// insert new node
-		err := ch.etcdHandler.CreateNode(ctx, pubkey, func(info *ffbs.NodeInfo) {
-			const V4_BASE uint32 = 10 << 24
-			const V4_RANGE_SIZE uint8 = 10
-			const V6_BASE_HIGH uint64 = 0x20010bf70381 << 16
-
-			num := *info.ID
-
-			var v4Addr [net.IPv4len]byte
-			binary.BigEndian.PutUint32(v4Addr[:], V4_BASE|(uint32(num)<<V4_RANGE_SIZE))
-			v4range := fmt.Sprintf("%s/%d", net.IP(v4Addr[:]), 8*net.IPv4len-V4_RANGE_SIZE)
-			v4Addr[net.IPv4len-1] = 1
-			v4addr := net.IP(v4Addr[:]).String()
-
-			var v6Addr [net.IPv6len]byte
-			binary.BigEndian.PutUint64(v6Addr[:8], V6_BASE_HIGH|uint64(num))
-			v6range := fmt.Sprintf("%s/64", net.IP(v6Addr[:]))
-			v6Addr[net.IPv6len-1] = 1
-			v6addr := net.IP(v6Addr[:]).String()
-
-			info.Address4 = &v4addr
-			info.Range4 = &v4range
-			info.Address6 = &v6addr
-			info.Range6 = &v6range
-		})
+		err := ch.etcdHandler.CreateNode(ctx, pubkey, generateNodeAddressesAndRanges)
 		if err != nil {
 			return nil, err
 		}
