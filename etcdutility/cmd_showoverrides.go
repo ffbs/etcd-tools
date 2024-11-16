@@ -6,7 +6,7 @@ import (
 	"log"
 	"reflect"
 
-	"gitli.stratum0.org/ffbs/etcd-tools/ffbs"
+	"github.com/ffbs/etcd-tools/ffbs"
 
 	"github.com/spf13/cobra"
 )

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"gitli.stratum0.org/ffbs/etcd-tools/ffbs"
+	"github.com/ffbs/etcd-tools/ffbs"
 )
 
 type ConfigResponse struct {

@@ -7,7 +7,7 @@ Pass the simulate argument to only show the wireguard interface changes that wou
 When it is started this way, it exits after printing the changes.
 
 The program expects a fixed Wireguard interface name (see [WG_DEVICENAME]) and
-an etcd configuration file at a fixed location (see [gitli.stratum0.org/ffbs/etcd-tools/ffbs.CreateEtcdConnection]).
+an etcd configuration file at a fixed location (see [github.com/ffbs/etcd-tools/ffbs.CreateEtcdConnection]).
 */
 package main
 
@@ -22,7 +22,7 @@ import (
 	"sort"
 	"time"
 
-	"gitli.stratum0.org/ffbs/etcd-tools/ffbs"
+	"github.com/ffbs/etcd-tools/ffbs"
 
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"

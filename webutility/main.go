@@ -1,5 +1,5 @@
 /*
-Utility to query the /config HTTP endpoint of [gitli.stratum0.org/ffbs/etcd-tools/etcconfigweb]
+Utility to query the /config HTTP endpoint of [github.com/ffbs/etcd-tools/etcconfigweb]
 and validate the response signature.
 
 See the help page (pass "--help" as argument) for further documentation.

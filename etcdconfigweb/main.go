@@ -5,7 +5,7 @@ By default it will listen on port 8080 on any interface. You can change this by 
 like ":1234", which would configure to listen on port 1234 on any interface or "127.0.0.1:1234" to only listen
 on the IPv4 local address "127.0.0.1" on port "1234".
 
-It expects an etcd configuration file at a fixed location (see [gitli.stratum0.org/ffbs/etcd-tools/ffbs.CreateEtcdConnection])
+It expects an etcd configuration file at a fixed location (see [github.com/ffbs/etcd-tools/ffbs.CreateEtcdConnection])
 and a signify private key to sign the requests at "/etc/ffbs/node-config.sec"
 
 As it doesn't need any root capabilities, it should be considered to run this executable as a normal user.
@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"os"
 
-	"gitli.stratum0.org/ffbs/etcd-tools/ffbs"
+	"github.com/ffbs/etcd-tools/ffbs"
 )
 
 func main() {

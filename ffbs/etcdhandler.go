@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"gitli.stratum0.org/ffbs/etcd-tools/etcdhelper"
+	"github.com/ffbs/etcd-tools/etcdhelper"
 
 	"go.etcd.io/etcd/client/v3"
 )
